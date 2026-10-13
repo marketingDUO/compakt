@@ -35,31 +35,48 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
-          import os
-          required=['HETZNER_HOST','HETZNER_USER','HETZNER_TARGET_DIR','SSHPASS']
+          import os, subprocess, tempfile, re, hashlib
+          from pathlib import Path
+          required=['HETZNER_HOST','HETZNER_USER','SSHPASS']
           missing=[key for key in required if not os.environ.get(key,'').strip()]
           if missing:
               raise SystemExit('Fehlende GitHub-Secrets: '+', '.join('HETZNER_PASSWORD' if k=='SSHPASS' else k for k in missing))
-          if os.environ['HETZNER_TARGET_DIR'].strip() in ('/', '.', '..'):
-              raise SystemExit('Bitte ein eindeutiges Website-Zielverzeichnis konfigurieren.')
-          PY
-          SFTP_BATCH="$(mktemp)"
-          export SFTP_BATCH
-          trap 'rm -f "$SFTP_BATCH"' EXIT
-          python - <<'PY'
-          import os
-          from pathlib import Path
           def quote(value):
               if '\n' in value or '\r' in value:
                   raise ValueError('Invalid SFTP path')
               return '"'+value.replace('\\','\\\\').replace('"','\\"')+'"'
+          def sftp(commands):
+              with tempfile.NamedTemporaryFile(mode='w',suffix='.sftp') as f:
+                  f.write('\n'.join(commands+['bye'])+'\n'); f.flush()
+                  return subprocess.run(['sshpass','-e','sftp','-oBatchMode=no','-oStrictHostKeyChecking=accept-new','-oConnectTimeout=20','-P',os.environ.get('HETZNER_PORT') or '22','-b',f.name,os.environ['HETZNER_USER']+'@'+os.environ['HETZNER_HOST']],capture_output=True,text=True)
+          configured=os.environ.get('HETZNER_TARGET_DIR','').strip()
+          candidates=[configured] if configured else ['compakt','public_html/compakt','/public_html/compakt']
+          resolved={}
+          for candidate in candidates:
+              if candidate in ('/', '.', '..'):
+                  raise SystemExit('Bitte ein eindeutiges Website-Zielverzeichnis konfigurieren.')
+              result=sftp(['cd '+quote(candidate),'pwd'])
+              if result.returncode==0:
+                  match=re.search(r'Remote working directory: (.+)',result.stdout)
+                  if match: resolved[match.group(1).strip()]=candidate
+          if len(resolved)!=1:
+              raise SystemExit('Compakt-Zielordner nicht eindeutig erreichbar. Gefundene passende Verzeichnisse: '+str(len(resolved)))
+          target=next(iter(resolved))
+          print('Compakt-Zielordner auf dem Server eindeutig gefunden.')
           root=Path('dist')
-          commands=['cd '+quote(os.environ['HETZNER_TARGET_DIR'])]
+          commands=['cd '+quote(target)]
           commands += ['-mkdir '+quote(str(p.relative_to(root))) for p in sorted(root.rglob('*')) if p.is_dir()]
           files=sorted(p for p in root.rglob('*') if p.is_file())
-          # Transfer assets before HTML so new pages find their media.
           files.sort(key=lambda p:(p.suffix=='.html',str(p)))
           commands += ['put '+quote(str(p))+' '+quote(str(p.relative_to(root))) for p in files]
-          Path(os.environ['SFTP_BATCH']).write_text('\n'.join(commands+['bye'])+'\n')
+          with tempfile.TemporaryDirectory() as tmp:
+              check=Path(tmp)/'index.html'
+              commands += ['get index.html '+quote(str(check))]
+              result=sftp(commands)
+              if result.returncode:
+                  print(result.stderr[-3000:])
+                  raise SystemExit('SFTP-Upload fehlgeschlagen.')
+              if hashlib.sha256(check.read_bytes()).digest()!=hashlib.sha256((root/'index.html').read_bytes()).digest():
+                  raise SystemExit('Prüfung der hochgeladenen Startseite fehlgeschlagen.')
+          print(str(len(files))+' Dateien zu Hetzner übertragen; Startseite vom Server zurückgelesen und verifiziert.')
           PY
-          sshpass -e sftp -oBatchMode=no -oStrictHostKeyChecking=accept-new -oConnectTimeout=20 -P "${HETZNER_PORT:-22}" -b "$SFTP_BATCH" "$HETZNER_USER@$HETZNER_HOST"
