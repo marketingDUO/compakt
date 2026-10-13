@@ -50,7 +50,7 @@ jobs:
                   f.write('\n'.join(commands+['bye'])+'\n'); f.flush()
                   return subprocess.run(['sshpass','-e','sftp','-oBatchMode=no','-oStrictHostKeyChecking=accept-new','-oConnectTimeout=20','-P',os.environ.get('HETZNER_PORT') or '22','-b',f.name,os.environ['HETZNER_USER']+'@'+os.environ['HETZNER_HOST']],capture_output=True,text=True)
           configured=os.environ.get('HETZNER_TARGET_DIR','').strip()
-          candidates=[configured] if configured else ['compakt','public_html/compakt','/public_html/compakt']
+          candidates=[configured] if configured else ['compakt','public_html/compakt','/public_html/compakt','/compakt']
           resolved={}
           for candidate in candidates:
               if candidate in ('/', '.', '..'):
@@ -60,6 +60,9 @@ jobs:
                   match=re.search(r'Remote working directory: (.+)',result.stdout)
                   if match: resolved[match.group(1).strip()]=candidate
           if len(resolved)!=1:
+              diagnostic=sftp(['pwd','ls -l'])
+              print(diagnostic.stdout[-4000:])
+              print(diagnostic.stderr[-2000:])
               raise SystemExit('Compakt-Zielordner nicht eindeutig erreichbar. Gefundene passende Verzeichnisse: '+str(len(resolved)))
           target=next(iter(resolved))
           print('Compakt-Zielordner auf dem Server eindeutig gefunden.')
