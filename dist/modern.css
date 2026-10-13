@@ -12,3 +12,6 @@
 @media(max-width:760px){.audience-grid{grid-template-columns:1fr}.audience-grid .media img{height:280px}.editorial-image img{height:330px}.quote-help{grid-template-columns:1fr;gap:25px}.quote-help>div:last-child{padding-left:0;border-left:0}.quote-help h2{font-size:2rem}.topic-grid{gap:20px}.topic-grid h3{font-size:1.25rem}.topic-grid p{font-size:.86rem}.cleaning-topics{padding-top:15px}.topic-links{gap:12px 20px}}
 @media(max-width:440px){.topic-grid{grid-template-columns:1fr;gap:5px}.topic-grid>a{padding:24px 0}.topic-grid h3{font-size:1.45rem}.editorial-image img,.audience-grid .media img{height:255px}}
 .blog-related{margin-top:15px;margin-bottom:32px}.article-aside .blog-related a{font-size:.82rem}
+
+/* Bold headings throughout the website. */
+h1,h2,h3,h4,h5,h6,.page-hero h1,.region-tile h3{font-weight:700}
