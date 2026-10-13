@@ -10,6 +10,6 @@ Python 3.12, `pip install -r requirements.txt`, `python build.py`, `python verif
 
 ## Deployment
 
-GitHub Actions veröffentlicht bei Push auf `main` ausschließlich den Inhalt von `dist/` per SFTP. Vorhandene Dateien werden nicht gelöscht. Erforderliche Repository-Secrets: `HETZNER_HOST`, `HETZNER_USER`, `HETZNER_PASSWORD`, `HETZNER_TARGET_DIR`. Optional: `HETZNER_PORT` (Standard 22).
+GitHub Actions veröffentlicht bei Push auf `main` ausschließlich den Inhalt von `dist/` per SFTP. Vorhandene Dateien werden nicht gelöscht. Erforderliche Repository-Secrets: `HETZNER_HOST`, `HETZNER_USER`, `HETZNER_PASSWORD`. Optional: `HETZNER_PORT` (Standard 22).
 
-Das Zielverzeichnis muss explizit gesetzt sein. Das Kontaktformular bereitet eine E-Mail im E-Mail-Programm vor; es versendet nicht serverseitig.
+Der bestätigte Zielordner ist `compakt`. Der Workflow ermittelt ihn automatisch im SFTP-Startverzeichnis oder unter `public_html` und lädt nur bei einem eindeutig gefundenen Ziel hoch. Ein zusätzliches Zielverzeichnis-Secret ist nicht erforderlich. Das Kontaktformular bereitet eine E-Mail im E-Mail-Programm vor; es versendet nicht serverseitig.
