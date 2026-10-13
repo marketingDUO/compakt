@@ -1,0 +1,4 @@
+DirectoryIndex index.html
+ErrorDocument 404 /404.html
+RedirectMatch 301 ^/reinigungsservice-fuerstenwalde-spree/?$ /gebaeudereinigung-fuerstenwalde-spree/
+RedirectMatch 301 ^/reinigungsservice-frankfurt-oder/?$ /gebaeudereinigung-frankfurt-oder/
